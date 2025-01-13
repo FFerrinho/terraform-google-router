@@ -27,40 +27,39 @@ resource "google_compute_router" "main" {
 }
 
 resource "google_compute_router_interface" "main" {
-    for_each            = var.router_interface
-    name                = each.value.name
-    router              = var.router_name != null ? google_compute_router.main[0].self_link : var.remote_router_self_link
-    ip_range            = each.value.ip_range
-    ip_version          = each.value.ip_version
-    vpn_tunnel          = each.value.vpn_tunnel
-    redundant_interface = each.value.redundant_interface
-    project             = var.project
-    subnetwork          = each.value.subnetwork
-    private_ip_address  = each.value.private_ip_address
-    region              = var.region
+  for_each            = var.router_interface
+  name                = each.value.name
+  router              = var.remote_router_self_link != null ? google_compute_router.main[0].self_link : var.remote_router_self_link
+  ip_range            = each.value.ip_range
+  ip_version          = each.value.ip_version
+  vpn_tunnel          = each.value.vpn_tunnel
+  redundant_interface = each.value.redundant_interface
+  project             = var.project
+  subnetwork          = each.value.subnetwork
+  private_ip_address  = each.value.private_ip_address
+  region              = var.region
 }
 
-# TODO Switch to for_each since multiple peers may be required
 resource "google_compute_router_peer" "main" {
-  count                         = var.router_peer_name
-  name                          = var.router_peer_name
-  interface                     = var.router_peer_interface
-  peer_asn                      = var.peer_asn
-  router                        = var.router_name != null ? google_compute_router.main[0].self_link : var.remote_router_self_link
-  ip_address                    = var.own_peer_ip_address
-  peer_ip_address               = var.peer_ip_address
-  advertised_route_priority     = var.advertised_route_priority
-  advertise_mode                = var.advertise_mode
-  advertised_groups             = var.advertised_groups
-  custom_learned_route_priority = var.custom_learned_route_priority
-  enable                        = var.router_peer_enabled
-  enable_ipv4                   = var.enable_ipv4
-  enable_ipv6                   = var.enable_ipv6
-  region                        = var.region
-  project                       = var.project
+  for_each                      = var.router_peering
+  name                          = each.value.name
+  interface                     = each.value.interface
+  peer_asn                      = each.value.peer_asn
+  router                        = var.remote_router_self_link != null ? google_compute_router.main[0].self_link : var.remote_router_self_link
+  ip_address                    = each.value.ip_address
+  peer_ip_address               = each.value.peer_ip_address
+  advertised_route_priority     = each.value.advertised_route_priority
+  advertise_mode                = each.value.advertise_mode
+  advertised_groups             = each.value.advertised_groups
+  custom_learned_route_priority = each.value.custom_learned_route_priority
+  enable                        = each.value.enable
+  enable_ipv4                   = each.value.enable_ipv4
+  enable_ipv6                   = each.value.enable_ipv6
+  region                        = var.region != null ? var.region : each.value.region
+  project                       = var.project != null ? var.project : each.value.project
 
   dynamic "advertised_ip_ranges" {
-    for_each = var.advertised_ip_ranges
+    for_each = each.value.advertised_ip_ranges
     content {
       range       = advertised_ip_ranges.value.range
       description = advertised_ip_ranges.value.description
@@ -68,14 +67,14 @@ resource "google_compute_router_peer" "main" {
   }
 
   dynamic "custom_learned_ip_ranges" {
-    for_each = var.custom_learned_ip_ranges
+    for_each = each.value.custom_learned_ip_ranges
     content {
       range = custom_learned_ip_ranges.value.range
     }
   }
 
   dynamic "bfd" {
-    for_each = var.bfd
+    for_each = each.value.bfd
     content {
       session_initialization_mode = bfd.value.session_initialization_mode
       min_transmit_interval       = bfd.value.min_transmit_interval
@@ -86,11 +85,11 @@ resource "google_compute_router_peer" "main" {
 
   lifecycle {
     precondition {
-      condition     = var.advertise_mode != "CUSTOM" ? length(var.advertised_groups) == 0 : true
+      condition     = var.router_peering.advertise_mode != "CUSTOM" ? length(var.router_peering.advertised_groups) == 0 : true
       error_message = "advertised_groups can only be used when advertise_mode is set to CUSTOM"
     }
     precondition {
-      condition     = var.advertise_mode != "CUSTOM" ? length(var.advertised_ip_ranges) == 0 : true
+      condition     = var.router_peering.advertise_mode != "CUSTOM" ? length(var.router_peering.advertised_ip_ranges) == 0 : true
       error_message = "advertised_ip_ranges can only be used when advertise_mode is set to CUSTOM"
     }
   }

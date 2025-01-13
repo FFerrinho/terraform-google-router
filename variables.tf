@@ -65,134 +65,70 @@ variable "router_interface" {
     private_ip_address  = optional(string)
   }))
   default = null
-} 
-
-variable "router_peer_name" {
-  description = "The name for the Cloud Router Peer."
-  type        = string
-  default     = null
 }
 
-variable "router_peer_interface" {
-  description = "The interface for the Cloud Router Peer."
-  type        = string
-  default     = null
-}
+variable "router_peering" {
+  description = "A list of Router Peering configurations for the Cloud Router."
+  type = map(object({
+    name      = optional(string)
+    interface = optional(string)
+    peer_asn  = optional(number)
 
-variable "peer_asn" {
-  description = "The peer ASN for the Cloud Router Peer."
-  type        = number
-  default     = null
-}
-
-variable "own_peer_ip_address" {
-  description = "The peer IP address for the Cloud Router Peer."
-  type        = string
-  default     = null
-}
-
-variable "peer_ip_address" {
-  description = "The peer IP address for the Cloud Router Peer."
-  type        = string
-  default     = null
-}
-
-variable "advertised_route_priority" {
-  description = "The advertised route priority for the Cloud Router Peer."
-  type        = number
-  default     = null
-}
-
-variable "advertise_mode" {
-  description = "The advertise mode for the Cloud Router Peer."
-  type        = string
-  default     = null
+    ip_address                    = optional(string)
+    peer_ip_address               = optional(string)
+    advertised_route_priority     = optional(number)
+    advertise_mode                = optional(string)
+    advertised_groups             = optional(list(string))
+    custom_learned_route_priority = optional(number)
+    enable                        = optional(bool)
+    enable_ipv4                   = optional(bool)
+    enable_ipv6                   = optional(bool)
+    region                        = optional(string)
+    project                       = optional(string)
+    advertised_ip_ranges = optional(list(object({
+      range       = string
+      description = optional(string)
+    })))
+    custom_learned_ip_ranges = optional(list(object({
+      range = string
+    })))
+    bfd = optional(list(object({
+      session_initialization_mode = optional(string)
+      min_transmit_interval       = optional(number)
+      min_receive_interval        = optional(number)
+      multiplier                  = optional(number)
+    })))
+  }))
+  default = null
 
   validation {
-    condition     = contains(["CUSTOM", "DEFAULT"], var.advertise_mode)
+    condition     = contains(["CUSTOM", "DEFAULT"], var.router_peering.value.advertise_mode)
     error_message = "advertise_mode must be one of: CUSTOM, DEFAULT"
   }
-}
-
-variable "advertised_groups" {
-  description = "The advertised groups for the Cloud Router Peer."
-  type        = list(string)
-  default     = null
-}
-
-variable "custom_learned_route_priority" {
-  description = "The custom learned route priority for the Cloud Router Peer."
-  type        = number
-  default     = null
 
   validation {
-    condition     = var.custom_learned_route_priority == null || (var.custom_learned_route_priority >= 0 && var.custom_learned_route_priority <= 65535)
-    error_message = "custom_learned_route_priority must be between 0 and 65535"
-  }
-}
-
-variable "router_peer_enabled" {
-  description = "The enabled status for the Cloud Router Peer."
-  type        = bool
-  default     = null
-}
-
-variable "advertised_ip_ranges" {
-  description = "The advertised IP ranges for the Cloud Router Peer."
-  type = list(object({
-    range       = string
-    description = optional(string)
-  }))
-  default = null
-}
-
-variable "custom_learned_ip_ranges" {
-  description = "The custom learned IP ranges for the Cloud Router Peer."
-  type = list(object({
-    range = string
-  }))
-  default = null
-}
-
-variable "enable_ipv4" {
-  description = "The enabled status for IPv4 for the Cloud Router Peer."
-  type        = bool
-  default     = null
-}
-
-variable "enable_ipv6" {
-  description = "The enabled status for IPv6 for the Cloud Router Peer."
-  type        = bool
-  default     = null
-}
-
-variable "bfd" {
-  description = "The BFD configuration for the Cloud Router Peer."
-  type = list(object({
-    session_initialization_mode = optional(string)
-    min_transmit_interval       = optional(number)
-    min_receive_interval        = optional(number)
-    multiplier                  = optional(number)
-  }))
-  default = null
-
-  validation {
-    condition     = var.bfd == null || alltrue([for b in var.bfd : contains(["ACTIVE", "DISABLED", "PASSIVE"], b.session_initialization_mode)])
+    condition     = var.router_peering.bfd == null || alltrue([for b in var.router_peering.bfd : contains(["ACTIVE", "DISABLED", "PASSIVE"], b.session_initialization_mode)])
     error_message = "session_initialization_mode must be one of: ACTIVE, DISABLED, PASSIVE"
   }
 
   validation {
-    condition     = var.bfd == null || alltrue([for b in var.bfd : b.min_transmit_interval == null || (b.min_transmit_interval >= 1000 && b.min_transmit_interval <= 30000)])
+    condition     = var.router_peering.bfd == null || alltrue([for b in var.router_peering.bfd : b.min_transmit_interval == null || (b.min_transmit_interval >= 1000 && b.min_transmit_interval <= 30000)])
     error_message = "min_transmit_interval must be between 1000 and 30000"
   }
 
   validation {
-    condition     = var.bfd == null || alltrue([for b in var.bfd : b.min_receive_interval == null || (b.min_receive_interval >= 1000 && b.min_receive_interval <= 30000)])
+    condition     = var.router_peering.bfd == null || alltrue([for b in var.router_peering.bfd : b.min_receive_interval == null || (b.min_receive_interval >= 1000 && b.min_receive_interval <= 30000)])
     error_message = "min_receive_interval must be between 1000 and 30000"
   }
 
   validation {
-    condition     = var.bfd == null || alltrue([for b in var.bfd : b.multiplier == null || (b.multiplier >= 5 && b.multiplier <= 16)])
+    condition     = var.router_peering.bfd == null || alltrue([for b in var.router_peering.bfd : b.multiplier == null || (b.multiplier >= 5 && b.multiplier <= 16)])
     error_message = "multiplier must be between 5 and 16"
   }
+}
+
+variable "remote_router_self_link" {
+  description = "The self link for the remote Cloud Router."
+  type        = string
+  default     = null
 }
