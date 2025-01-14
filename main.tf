@@ -1,3 +1,8 @@
+resource "random_integer" "main" {
+  min = 64512
+  max = 65534
+}
+ 
 resource "google_compute_router" "main" {
   count       = var.router_name != "" ? 1 : 0
   name        = var.router_name
@@ -5,21 +10,22 @@ resource "google_compute_router" "main" {
   description = var.router_description
   region      = var.region
   project     = var.project
-
+ 
   dynamic "bgp" {
     for_each = var.bgp != null ? var.bgp : []
     content {
-      asn                = bgp.value.asn != null ? bgp.value.asn : ""
-      advertise_mode     = bgp.value.advertise_mode != null ? bgp.value.advertise_mode : ""
-      advertised_groups  = bgp.value.advertised_groups != null ? bgp.value.advertised_groups : ""
-      keepalive_interval = bgp.value.keepalive_interval != null ? bgp.value.keepalive_interval : ""
-      identifier_range   = bgp.value.identifier_range != null ? bgp.value.identifier_range : ""
+      asn                = bgp.value.asn != null ? bgp.value.asn : random_integer.main.result
+ 
+      advertise_mode     = bgp.value.advertise_mode != null ? bgp.value.advertise_mode : "DEFAULT"
+      advertised_groups  = bgp.value.advertised_groups != null ? bgp.value.advertised_groups : []
+      keepalive_interval = bgp.value.keepalive_interval != null ? bgp.value.keepalive_interval : null
+      identifier_range   = bgp.value.identifier_range != null ? bgp.value.identifier_range : null
 
       dynamic "advertised_ip_ranges" {
-        for_each = bgp.value.advertised_ip_ranges
+        for_each = bgp.value.advertised_ip_ranges != null ? [bgp.value.advertised_ip_ranges] : []
         content {
-          range       = advertised_ip_ranges.value.range != null ? advertised_ip_ranges.value.range : ""
-          description = advertised_ip_ranges.value.description != null ? advertised_ip_ranges.value.description : ""
+          range       = advertised_ip_ranges.value.range != null ? advertised_ip_ranges.value.range : null
+          description = advertised_ip_ranges.value.description != null ? advertised_ip_ranges.value.description : null
         }
       }
     }
@@ -98,7 +104,7 @@ resource "google_compute_router_peer" "main" {
 resource "google_compute_route" "main" {
   for_each               = var.routes != null ? var.routes : {}
   dest_range             = each.value.dest_range
-  name                   = each.value.name
+  name                   = lower(each.value.name)
   network                = var.network
   description            = each.value.description
   priority               = each.value.priority
@@ -108,4 +114,11 @@ resource "google_compute_route" "main" {
   next_hop_ip            = each.value.next_hop_ip
   project                = var.project
   next_hop_instance_zone = each.value.next_hop_instance_zone
+
+  lifecycle {
+    precondition {
+      condition     = coalesce(each.value.next_hop_gateway, each.value.next_hop_instance, each.value.next_hop_ip) != null
+      error_message = "At least one next_hop_* attribute must be specified for the route resource"
+    }
+  }
 }
