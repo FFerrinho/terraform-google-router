@@ -154,3 +154,20 @@ variable "remote_router_self_link" {
   type        = string
   default     = null
 }
+
+variable "routes" {
+  description = "A list of Route configurations for the Cloud Router."
+  type = map(object({
+    dest_range             = optional(string)
+    name                   = optional(string)
+    network                = optional(string)
+    description            = optional(string)
+    priority               = optional(number)
+    tags                   = optional(list(string))
+    next_hop_gateway       = optional(string)
+    next_hop_instance      = optional(string)
+    next_hop_ip            = optional(string)
+    next_hop_instance_zone = optional(string)
+  }))
+  default = null
+}

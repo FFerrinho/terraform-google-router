@@ -59,7 +59,7 @@ resource "google_compute_router_peer" "main" {
   project                       = var.project != null ? var.project : each.value.project
 
   dynamic "advertised_ip_ranges" {
-    for_each = each.value.advertised_ip_ranges
+    for_each = each.value.advertised_ip_ranges != null ? each.value.advertised_ip_ranges : []
     content {
       range       = advertised_ip_ranges.value.range
       description = advertised_ip_ranges.value.description
@@ -67,14 +67,14 @@ resource "google_compute_router_peer" "main" {
   }
 
   dynamic "custom_learned_ip_ranges" {
-    for_each = each.value.custom_learned_ip_ranges
+    for_each = each.value.custom_learned_ip_ranges != null ? each.value.custom_learned_ip_ranges : []
     content {
       range = custom_learned_ip_ranges.value.range
     }
   }
 
   dynamic "bfd" {
-    for_each = each.value.bfd
+    for_each = each.value.bfd != null ? each.value.bfd : []
     content {
       session_initialization_mode = bfd.value.session_initialization_mode
       min_transmit_interval       = bfd.value.min_transmit_interval
@@ -93,4 +93,19 @@ resource "google_compute_router_peer" "main" {
       error_message = "advertised_ip_ranges can only be used when advertise_mode is set to CUSTOM"
     }
   }
+}
+
+resource "google_compute_route" "main" {
+  for_each               = var.routes != null ? var.routes : {}
+  dest_range             = each.value.dest_range
+  name                   = each.value.name
+  network                = var.network
+  description            = each.value.description
+  priority               = each.value.priority
+  tags                   = each.value.tags
+  next_hop_gateway       = each.value.next_hop_gateway
+  next_hop_instance      = each.value.next_hop_instance
+  next_hop_ip            = each.value.next_hop_ip
+  project                = var.project
+  next_hop_instance_zone = each.value.next_hop_instance_zone
 }
