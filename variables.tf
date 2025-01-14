@@ -46,11 +46,6 @@ variable "bgp" {
     }))
   }))
   default = null
-
-  validation {
-    condition     = var.bgp == null || alltrue([for b in var.bgp : (b.asn >= 64512 && b.asn <= 65534) || (b.asn >= 4200000000 && b.asn <= 4294967294)])
-    error_message = "ASN must be either a 16-bit private ASN (64512-65534) or a 32-bit private ASN (4200000000-4294967294) per RFC6996"
-  }
 }
 
 variable "router_interface" {
@@ -102,27 +97,54 @@ variable "router_peering" {
   default = null
 
   validation {
-    condition     = contains(["CUSTOM", "DEFAULT"], var.router_peering.value.advertise_mode)
+    condition = var.router_peering == null ? true : alltrue([
+      for k, v in var.router_peering :
+      v.advertise_mode == null || contains(["CUSTOM", "DEFAULT"], v.advertise_mode)
+    ])
     error_message = "advertise_mode must be one of: CUSTOM, DEFAULT"
   }
 
   validation {
-    condition     = var.router_peering.bfd == null || alltrue([for b in var.router_peering.bfd : contains(["ACTIVE", "DISABLED", "PASSIVE"], b.session_initialization_mode)])
+    condition = var.router_peering == null ? true : alltrue([
+      for k, v in var.router_peering :
+      v.bfd == null ? true : alltrue([
+        for b in v.bfd :
+        b.session_initialization_mode == null ? true : contains(["ACTIVE", "DISABLED", "PASSIVE"], b.session_initialization_mode)
+      ])
+    ])
     error_message = "session_initialization_mode must be one of: ACTIVE, DISABLED, PASSIVE"
   }
 
   validation {
-    condition     = var.router_peering.bfd == null || alltrue([for b in var.router_peering.bfd : b.min_transmit_interval == null || (b.min_transmit_interval >= 1000 && b.min_transmit_interval <= 30000)])
+    condition = var.router_peering == null ? true : alltrue([
+      for k, v in var.router_peering :
+      v.bfd == null ? true : alltrue([
+        for b in v.bfd :
+        b.min_transmit_interval == null ? true : (b.min_transmit_interval >= 1000 && b.min_transmit_interval <= 30000)
+      ])
+    ])
     error_message = "min_transmit_interval must be between 1000 and 30000"
   }
 
   validation {
-    condition     = var.router_peering.bfd == null || alltrue([for b in var.router_peering.bfd : b.min_receive_interval == null || (b.min_receive_interval >= 1000 && b.min_receive_interval <= 30000)])
+    condition = var.router_peering == null ? true : alltrue([
+      for k, v in var.router_peering :
+      v.bfd == null ? true : alltrue([
+        for b in v.bfd :
+        b.min_receive_interval == null ? true : (b.min_receive_interval >= 1000 && b.min_receive_interval <= 30000)
+      ])
+    ])
     error_message = "min_receive_interval must be between 1000 and 30000"
   }
 
   validation {
-    condition     = var.router_peering.bfd == null || alltrue([for b in var.router_peering.bfd : b.multiplier == null || (b.multiplier >= 5 && b.multiplier <= 16)])
+    condition = var.router_peering == null ? true : alltrue([
+      for k, v in var.router_peering :
+      v.bfd == null ? true : alltrue([
+        for b in v.bfd :
+        b.multiplier == null ? true : (b.multiplier >= 5 && b.multiplier <= 16)
+      ])
+    ])
     error_message = "multiplier must be between 5 and 16"
   }
 }

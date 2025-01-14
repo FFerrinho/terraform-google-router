@@ -1,5 +1,5 @@
 resource "google_compute_router" "main" {
-  count       = var.router_name
+  count       = var.router_name != "" ? 1 : 0
   name        = var.router_name
   network     = var.network
   description = var.router_description
@@ -7,7 +7,7 @@ resource "google_compute_router" "main" {
   project     = var.project
 
   dynamic "bgp" {
-    for_each = var.bgp
+    for_each = var.bgp != null ? var.bgp : []
     content {
       asn                = bgp.value.asn != null ? bgp.value.asn : ""
       advertise_mode     = bgp.value.advertise_mode != null ? bgp.value.advertise_mode : ""
@@ -27,7 +27,7 @@ resource "google_compute_router" "main" {
 }
 
 resource "google_compute_router_interface" "main" {
-  for_each            = var.router_interface
+  for_each            = var.router_interface != null ? var.router_interface : {}
   name                = each.value.name
   router              = var.remote_router_self_link != null ? google_compute_router.main[0].self_link : var.remote_router_self_link
   ip_range            = each.value.ip_range
@@ -41,7 +41,7 @@ resource "google_compute_router_interface" "main" {
 }
 
 resource "google_compute_router_peer" "main" {
-  for_each                      = var.router_peering
+  for_each                      = var.router_peering != null ? var.router_peering : {}
   name                          = each.value.name
   interface                     = each.value.interface
   peer_asn                      = each.value.peer_asn
