@@ -1,4 +1,9 @@
 # Router outputs
+output "router_name" {
+  description = "The name of the router."
+  value       = google_compute_router.main[0].name
+}
+
 output "router" {
   description = "Cloud Router resource"
   value = var.router_name != "" ? {
@@ -47,18 +52,22 @@ output "peers" {
 }
 
 # Routes outputs
-# Replace routes output with:
 output "routes" {
   description = "Map of route resources"
-  value = try({
-    for k, v in var.routes != null ? var.routes : {} : k => {
+  value = {
+    for k, v in google_compute_route.main : k => {
+      id                     = v.id
       name                   = v.name
-      dest_range            = v.dest_range
-      priority              = v.priority
-      next_hop_gateway      = v.next_hop_gateway
-      next_hop_ip           = v.next_hop_ip
-      next_hop_instance     = v.next_hop_instance
+      dest_range             = v.dest_range
+      priority               = v.priority
+      next_hop_gateway       = v.next_hop_gateway
+      next_hop_ip            = v.next_hop_ip
+      next_hop_instance      = v.next_hop_instance
       next_hop_instance_zone = v.next_hop_instance_zone
+      next_hop_vpn_tunnel    = v.next_hop_vpn_tunnel
+      next_hop_ilb           = v.next_hop_ilb
+      tags                   = v.tags
+      self_link              = v.self_link
     }
-  }, {})
+  }
 }

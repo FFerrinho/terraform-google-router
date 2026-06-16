@@ -93,6 +93,10 @@ variable "router_peering" {
       min_receive_interval        = optional(number)
       multiplier                  = optional(number)
     })))
+    md5_authentication_key = optional(list(object({
+      name = string
+      key  = string
+    })))
   }))
   default = null
 

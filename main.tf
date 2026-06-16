@@ -96,6 +96,14 @@ resource "google_compute_router_peer" "main" {
     }
   }
 
+  dynamic "md5_authentication_key" {
+    for_each = each.value.md5_authentication_key != null ? each.value.md5_authentication_key : []
+    content {
+      name = md5_authentication_key.value.name
+      key  = md5_authentication_key.value.key
+    }
+  }
+
   lifecycle {
     precondition {
       condition     = each.value.advertise_mode != "CUSTOM" ? length(coalesce(each.value.advertised_groups, [])) == 0 : true
